@@ -20,12 +20,15 @@ import (
 type SpecReader struct {
 	sourcesMap      map[string]*Source
 	destinationsMap map[string]*Destination
+	transformsMap   map[string]*Transform
 
 	sourceWarningsMap      map[string]Warnings
 	destinationWarningsMap map[string]Warnings
+	transformWarningsMap   map[string]Warnings
 
 	Sources      []*Source
 	Destinations []*Destination
+	Transforms   []*Transform
 }
 
 var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
@@ -96,6 +99,18 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 			return fmt.Errorf("failed to unmarshal file %s: %w", path, err)
 		}
 		switch s.Kind {
+		case KindTransform:
+			transform := s.Spec.(*Transform)
+			if r.transformsMap[transform.Name] != nil {
+				return fmt.Errorf("duplicate transform name %s", transform.Name)
+			}
+			r.transformWarningsMap[transform.Name] = transform.GetWarnings()
+			transform.SetDefaults()
+			if err := transform.Validate(); err != nil {
+				return fmt.Errorf("failed to validate transform %s: %w", transform.Name, err)
+			}
+			r.transformsMap[transform.Name] = transform
+			r.Transforms = append(r.Transforms, transform)
 		case KindSource:
 			source := s.Spec.(*Source)
 			if r.sourcesMap[source.Name] != nil {
@@ -261,10 +276,13 @@ func newSpecReader(paths []string) (*SpecReader, error) {
 	reader := &SpecReader{
 		sourcesMap:             make(map[string]*Source),
 		destinationsMap:        make(map[string]*Destination),
+		transformsMap:          make(map[string]*Transform),
 		Sources:                make([]*Source, 0),
 		Destinations:           make([]*Destination, 0),
+		Transforms:             make([]*Transform, 0),
 		sourceWarningsMap:      make(map[string]Warnings),
 		destinationWarningsMap: make(map[string]Warnings),
+		transformWarningsMap:   make(map[string]Warnings),
 	}
 	for _, path := range paths {
 		file, err := os.Open(path)

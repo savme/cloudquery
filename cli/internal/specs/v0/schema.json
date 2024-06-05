@@ -315,6 +315,24 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "transform",
+                "description": "CloudQuery plugin kind"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/Transform"
+              }
+            }
+          }
         }
       ],
       "properties": {
@@ -322,7 +340,8 @@
           "type": "string",
           "enum": [
             "source",
-            "destination"
+            "destination",
+            "transform"
           ],
           "description": "CloudQuery plugin kind"
         },
@@ -333,6 +352,9 @@
             },
             {
               "$ref": "#/$defs/Destination"
+            },
+            {
+              "$ref": "#/$defs/Transform"
             }
           ]
         }
@@ -342,6 +364,19 @@
       "required": [
         "kind",
         "spec"
+      ]
+    },
+    "Transform": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
       ]
     }
   }

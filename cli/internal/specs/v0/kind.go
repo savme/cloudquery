@@ -13,12 +13,14 @@ type Kind int
 const (
 	KindSource Kind = iota
 	KindDestination
+	KindTransform
 )
 
 var (
 	AllKinds = [...]string{
 		KindSource:      "source",
 		KindDestination: "destination",
+		KindTransform:   "transform",
 	}
 )
 
