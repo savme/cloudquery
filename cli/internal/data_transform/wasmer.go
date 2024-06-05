@@ -1,9 +1,11 @@
 package datatransform
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/wasmerio/wasmer-go/wasmer"
 	"golang.org/x/exp/maps"
@@ -51,6 +53,7 @@ func getRuntimeCompilerKind() (wasmer.CompilerKind, error) {
 	return wasmer.CompilerKind(0), errors.New("no available wasm compilers")
 }
 
+// Deprecated: use wazero
 func NewWasmerDataTransformer() (*Wasmer, error) {
 	engineKind, err := getRuntimeEngineKind()
 	if err != nil {
@@ -90,7 +93,7 @@ func (w *Wasmer) Close() error {
 
 func (w *Wasmer) Modules() []string { return maps.Keys(w.modules) }
 
-func (w *Wasmer) InitializeModule(path string) error {
+func (w *Wasmer) InitializeModule(_ context.Context, path string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("unable to load %s: %w", path, err)
@@ -119,21 +122,24 @@ func (w *Wasmer) InitializeModule(path string) error {
 	return nil
 }
 
-func (w *Wasmer) ExecuteModule(path string) error {
+func (w *Wasmer) ExecuteModule(_ context.Context, path string, _ []byte) ([]byte, error) {
 	mod, ok := w.modules[path]
 	if !ok {
-		return fmt.Errorf("requested unknown module %s", path)
+		return nil, fmt.Errorf("requested unknown module %s", path)
 	}
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	start, err := mod.Exports.GetWasiStartFunction()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	rv, err := start()
 	fmt.Println(rv, string(mod.ReadStdout()), string(mod.ReadStderr()))
 
-	// if _, ok := err.(*wasmer.TrapError); ok {
-	// 	return nil
-	// }
-	return err
+	if _, ok := err.(*wasmer.TrapError); ok {
+		mod.Close()
+		return nil, nil
+	}
+	return nil, err
 }

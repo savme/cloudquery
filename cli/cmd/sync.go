@@ -130,13 +130,13 @@ func sync(cmd *cobra.Command, args []string) error {
 	var dt datatransform.DataTransformer
 	dt, _ = datatransform.NewNoopDataTransformer()
 	if len(transforms) > 0 {
-		wasm, err := datatransform.NewWasmerDataTransformer()
+		wasm, err := datatransform.NewWazeroDataTransformer(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to initialize a wasm engine: %w", err)
 		}
 
 		for _, spec := range transforms {
-			if err := wasm.InitializeModule(spec.Path); err != nil {
+			if err := wasm.InitializeModule(ctx, spec.Path); err != nil {
 				return err
 			}
 		}

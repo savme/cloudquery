@@ -271,18 +271,18 @@ func syncConnectionV3(ctx context.Context, source v3source, destinations []v3des
 		syncResponseMsg := r.GetMessage()
 		switch m := syncResponseMsg.(type) {
 		case *plugin.Sync_Response_Insert:
+			for _, mod := range dt.Modules() {
+				out, err := dt.ExecuteModule(ctx, mod, m.Insert.Record)
+				if err != nil {
+					return err
+				}
+
+				m.Insert.Record = out
+			}
+
 			record, err := plugin.NewRecordFromBytes(m.Insert.Record)
 			if err != nil {
 				return fmt.Errorf("failed to get record from bytes: %w", err)
-			}
-
-			fmt.Printf("%T\n", dt)
-			fmt.Println(dt.Modules())
-			for _, mod := range dt.Modules() {
-				fmt.Printf("mod=%s dt=%T\n", mod, dt)
-				if err := dt.ExecuteModule(mod); err != nil {
-					return err
-				}
 			}
 
 			atomic.AddInt64(&newResources, record.NumRows())

@@ -127,6 +127,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tdewolff/minify/v2 v2.20.18 // indirect
 	github.com/tdewolff/parse/v2 v2.7.12 // indirect
+	github.com/tetratelabs/wazero v1.7.2
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
