@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery/cli/internal/api"
+	datatransform "github.com/cloudquery/cloudquery/cli/internal/data_transform"
 	"github.com/cloudquery/cloudquery/cli/internal/specs/v0"
 	"github.com/cloudquery/cloudquery/cli/internal/transformer"
 	"github.com/cloudquery/plugin-pb-go/managedplugin"
@@ -52,7 +53,7 @@ func getProgressAPIClient() (*cloudquery_api.ClientWithResponses, error) {
 }
 
 // nolint:dupl
-func syncConnectionV3(ctx context.Context, source v3source, destinations []v3destination, backend *v3destination, uid string, noMigrate bool, summaryLocation string) error {
+func syncConnectionV3(ctx context.Context, source v3source, destinations []v3destination, backend *v3destination, dt datatransform.DataTransformer, uid string, noMigrate bool, summaryLocation string) error {
 	var mt metrics.Metrics
 	var exitReason = ExitReasonStopped
 	tablesForDeleteStale := make(map[string]bool, 0)
@@ -273,6 +274,15 @@ func syncConnectionV3(ctx context.Context, source v3source, destinations []v3des
 			record, err := plugin.NewRecordFromBytes(m.Insert.Record)
 			if err != nil {
 				return fmt.Errorf("failed to get record from bytes: %w", err)
+			}
+
+			fmt.Printf("%T\n", dt)
+			fmt.Println(dt.Modules())
+			for _, mod := range dt.Modules() {
+				fmt.Printf("mod=%s dt=%T\n", mod, dt)
+				if err := dt.ExecuteModule(mod); err != nil {
+					return err
+				}
 			}
 
 			atomic.AddInt64(&newResources, record.NumRows())

@@ -9,6 +9,7 @@ import (
 
 	apiAuth "github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery/cli/internal/auth"
+	datatransform "github.com/cloudquery/cloudquery/cli/internal/data_transform"
 	"github.com/cloudquery/cloudquery/cli/internal/specs/v0"
 	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	"github.com/rs/zerolog/log"
@@ -106,6 +107,8 @@ func sync(cmd *cobra.Command, args []string) error {
 
 	sources := specReader.Sources
 	destinations := specReader.Destinations
+	transforms := specReader.Transforms
+
 	sourcePluginClients := make(managedplugin.Clients, 0)
 	defer func() {
 		if err := sourcePluginClients.Terminate(); err != nil {
@@ -123,6 +126,24 @@ func sync(cmd *cobra.Command, args []string) error {
 
 	// in a cloud sync environment, we pass only the relevant environment variables to the plugin
 	osEnviron := os.Environ()
+
+	var dt datatransform.DataTransformer
+	dt, _ = datatransform.NewNoopDataTransformer()
+	if len(transforms) > 0 {
+		wasm, err := datatransform.NewWasmerDataTransformer()
+		if err != nil {
+			return fmt.Errorf("failed to initialize a wasm engine: %w", err)
+		}
+
+		for _, spec := range transforms {
+			if err := wasm.InitializeModule(spec.Path); err != nil {
+				return err
+			}
+		}
+
+		dt = wasm
+	}
+	defer dt.Close()
 
 	for _, source := range sources {
 		opts := []managedplugin.Option{
@@ -265,7 +286,7 @@ func sync(cmd *cobra.Command, args []string) error {
 				return err
 			}
 
-			if err := syncConnectionV3(ctx, src, dests, backend, invocationUUID.String(), noMigrate, summaryLocation); err != nil {
+			if err := syncConnectionV3(ctx, src, dests, backend, dt, invocationUUID.String(), noMigrate, summaryLocation); err != nil {
 				return fmt.Errorf("failed to sync v3 source %s: %w", cl.Name(), err)
 			}
 
