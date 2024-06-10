@@ -271,8 +271,14 @@ func syncConnectionV3(ctx context.Context, source v3source, destinations []v3des
 		syncResponseMsg := r.GetMessage()
 		switch m := syncResponseMsg.(type) {
 		case *plugin.Sync_Response_Insert:
+			record, err := plugin.NewRecordFromBytes(m.Insert.Record)
+			if err != nil {
+				return fmt.Errorf("failed to get record from bytes: %w", err)
+			}
+
+			table, _ := record.Schema().Metadata().GetValue("cq:table_name")
 			for _, mod := range dt.Modules() {
-				out, err := dt.ExecuteModule(ctx, mod, m.Insert.Record)
+				out, err := dt.ExecuteModule(ctx, mod, table, m.Insert.Record)
 				if err != nil {
 					return err
 				}
@@ -280,7 +286,7 @@ func syncConnectionV3(ctx context.Context, source v3source, destinations []v3des
 				m.Insert.Record = out
 			}
 
-			record, err := plugin.NewRecordFromBytes(m.Insert.Record)
+			record, err = plugin.NewRecordFromBytes(m.Insert.Record)
 			if err != nil {
 				return fmt.Errorf("failed to get record from bytes: %w", err)
 			}

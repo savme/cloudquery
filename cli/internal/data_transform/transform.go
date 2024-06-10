@@ -7,7 +7,7 @@ import (
 type DataTransformer interface {
 	Modules() []string
 	InitializeModule(context.Context, string) error
-	ExecuteModule(context.Context, string, []byte) ([]byte, error)
+	ExecuteModule(context.Context, string, string, []byte) ([]byte, error)
 
 	Close() error
 }
@@ -20,9 +20,9 @@ func NewNoopDataTransformer() (*NoopDataTransformer, error) {
 	return &NoopDataTransformer{}, nil
 }
 
-func (n *NoopDataTransformer) Close() error { return nil }
-func (n *NoopDataTransformer) ExecuteModule(context.Context, string, []byte) ([]byte, error) {
+func (*NoopDataTransformer) Close() error { return nil }
+func (*NoopDataTransformer) ExecuteModule(context.Context, string, string, []byte) ([]byte, error) {
 	return nil, nil
 }
-func (n *NoopDataTransformer) InitializeModule(context.Context, string) error { return nil }
-func (n *NoopDataTransformer) Modules() []string                              { return []string{} }
+func (*NoopDataTransformer) InitializeModule(context.Context, string) error { return nil }
+func (*NoopDataTransformer) Modules() []string                              { return []string{} }
